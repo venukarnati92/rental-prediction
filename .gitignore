@@ -1,5 +1,5 @@
 # Byte-compiled / optimized / DLL files
-__pycache__/
+*/__pycache__
 *.py[codz]
 *$py.class
 
@@ -205,3 +205,43 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# --- Added for rental-prediction project specifics ---
+
+# macOS
+.DS_Store
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+crash.log
+.terraform.lock.hcl
+
+# Data science/ML artifacts
+/data/
+/datasets/
+/outputs/
+/models/
+*.h5
+*.pkl
+*.joblib
+*.csv
+*.tsv
+*.parquet
+*.feather
+
+# Jupyter nbconvert output
+*.nbconvert.ipynb
+
+# VSCode
+.vscode/
+
+# Logs
+*.log
+
+#pem files
+*.pem
+*.pem.pub
+
+src/prefect/data/reference.parquet

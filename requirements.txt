@@ -1,0 +1,17 @@
+# Add your dependencies here
+pandas
+scikit-learn
+ucimlrepo
+xgboost
+mlflow
+hyperopt
+setuptools
+boto3
+prefect
+prefect-aws
+evidently==0.6.7
+joblib
+tqdm
+psycopg
+psycopg_binary
+
