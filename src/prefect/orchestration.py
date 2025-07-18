@@ -97,6 +97,7 @@ def feature_engineering(df):
 
 @task(retries=3, retry_delay_seconds=60)
 def store_data_in_prefect_artifact(rmse):
+    rmse_value = float(rmse)  # Ensure rmse is a float
     markdown__rmse_report = f"""# RMSE Report
         ## Summary
 
@@ -106,7 +107,7 @@ def store_data_in_prefect_artifact(rmse):
 
         | Region    | RMSE |
         |:----------|-------:|
-        | {date.today()} | {rmse:.2f} |
+        | {date.today()} | {rmse_value:.2f} |
         """
     create_markdown_artifact(
             key="rental-prediction-report", markdown=markdown__rmse_report

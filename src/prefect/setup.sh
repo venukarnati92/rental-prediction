@@ -17,4 +17,5 @@ while [ -z "$(curl -s http://$host_name:4200/api)" ]; do
     sleep 5
 done
 
-python orchestration.py ${host_name} 
+cd "$(dirname "$0")"
+python orchestration.py "${host_name}" 

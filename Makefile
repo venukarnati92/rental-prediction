@@ -27,15 +27,29 @@ help:
 	@echo ""
 	@echo "  prefect-setup         - Run Prefect setup script with EC2 DNS from infra output"
 	@echo "  generate-ssh-key      - Generate RSA SSH key pair for EC2"
+	@echo "  prefect-server        - Start SSH tunnel for PostgreSQL to EC2 instance"
+	@echo ""
+	@echo "Testing:"
+	@echo "  test                  - Run all unit tests"
+
+.PHONY: test
+test:
+	PYTHONPATH=src pytest tests/unit/
 
 .PHONY: prefect-setup
-prefect-setup:
+prefect-setup: ssh-tunnel
 	@echo "--> Getting EC2 public IP from Terraform output..."
 	@host_name=$$(terraform -chdir=terraform/infra output -raw ec2_dns_name) && \
 	echo "--> Running Prefect setup script with host: $$host_name" && \
 	bash src/prefect/setup.sh $$host_name
 
 # ==============================================================================
+.PHONY: ssh-tunnel
+ssh-tunnel:
+	@echo "--> Starting SSH tunnel for PostgreSQL on port 5432 to EC2..."
+	@ip_address=$$(terraform -chdir=terraform/infra output -raw ec2_public_ip) && \
+	ssh -i terraform/modules/ec2/my-key.pem -L 5432:localhost:5432 ec2-user@$$ip_address
+
 .PHONY: generate-ssh-key
 generate-ssh-key:
 	@echo "--> Generating RSA SSH key pair..."

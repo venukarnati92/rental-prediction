@@ -95,9 +95,6 @@ resource "aws_instance" "ec2" {
   }
   user_data = <<EOF
 #!/bin/bash
-# Log everything to a file for easier debugging
-exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
-
 # --- Base System Setup ---
 echo "--> Updating system and installing base packages..."
 sudo dnf update -y
@@ -111,95 +108,18 @@ sudo python3 -m pip install --ignore-installed mlflow boto3 psycopg2-binary pref
 echo "--> Installing Docker..."
 sudo dnf install -y docker
 sudo systemctl enable --now docker
-sudo usermod -aG docker ec2-user # Allow ec2-user to run docker commands
+sudo usermod -aG docker ec2-user
 
 echo "--> Installing Docker Compose..."
 sudo curl -SL https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
 sudo chmod +x /usr/local/bin/docker-compose
 
-# --- Create Directory and Config Files for Docker Compose ---
-echo "--> Creating configuration directories and files for monitoring stack..."
-mkdir -p /home/ec2-user/monitoring/config
-mkdir -p /home/ec2-user/monitoring/dashboards
+# --- Clone Configuration Repository ---
+echo "--> Cloning configuration repository from GitHub..."
+git clone https://github.com/venukarnati92/rental-prediction.git /home/ec2-user/app
 
-# Create Grafana datasource config
-cat <<'EOT' > /home/ec2-user/monitoring/config/grafana_datasources.yaml
-apiVersion: 1
-datasources:
-  - name: PostgreSQL
-    type: postgres
-    url: db:5432
-    user: postgres
-    password: example
-    database: rentalprediction # Or your specific DB name
-    isDefault: true
-    editable: true
-EOT
-
-# Create Grafana dashboard config
-cat <<'EOT' > /home/ec2-user/monitoring/config/grafana_dashboards.yaml
-apiVersion: 1
-providers:
-- name: 'default'
-  orgId: 1
-  folder: ''
-  type: file
-  disableDeletion: false
-  editable: true
-  options:
-    path: /opt/grafana/dashboards
-EOT
-
-# --- Create the docker-compose.yml file ---
-echo "--> Creating docker-compose.yml..."
-cat <<'EOT' > /home/ec2-user/monitoring/docker-compose.yml
-version: '3.7'
-
-volumes: 
-  grafana_data: {}
-
-networks:
-  front-tier:
-  back-tier:
-
-services:
-  db:
-    image: postgres
-    restart: always
-    environment:
-      POSTGRES_PASSWORD: example
-    ports:
-      - "5432:5432"
-    networks:
-      - back-tier
-
-  adminer:
-    image: adminer
-    restart: always
-    ports:
-      - "8080:8080"
-    networks:
-      - back-tier
-      - front-tier  
-
-  grafana:
-    image: grafana/grafana-enterprise
-    user: "472"
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./config/grafana_datasources.yaml:/etc/grafana/provisioning/datasources/datasource.yaml:ro
-      - ./config/grafana_dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml:ro
-      - ./dashboards:/opt/grafana/dashboards
-      - grafana_data:/var/lib/grafana
-    networks:
-      - back-tier
-      - front-tier
-    restart: always
-EOT
-
-# Set correct ownership for the created files
-sudo chown -R ec2-user:ec2-user /home/ec2-user/monitoring
+# Set correct ownership for the cloned repository
+sudo chown -R ec2-user:ec2-user /home/ec2-user/app
 
 # --- Start All Services ---
 echo "--> Starting MLflow, Prefect, and Docker Compose services..."
@@ -209,7 +129,7 @@ nohup mlflow server -h 0.0.0.0 -p 5000 \
 --backend-store-uri postgresql://${var.rds_username}:${var.rds_password}@${var.rds_endpoint}/${var.rds_db_name} \
 --default-artifact-root s3://${var.s3_bucket_name} &
 
-# Start Prefect server and agent
+# Start Prefect server and worker
 # Loop until a public IP is successfully retrieved
 while [ -z "$PUBLIC_IP" ]; do
   echo "Attempting to fetch public IP..."
@@ -224,11 +144,12 @@ echo "Successfully fetched public IP: $PUBLIC_IP"
 export PREFECT_API_URL="http://$PUBLIC_IP:4200/api"
 nohup prefect server start --host 0.0.0.0 --port 4200 &
 sleep 10
-nohup prefect agent start -p 'default' &
+# Use the modern 'prefect worker start' command
+nohup prefect worker start -p 'default' &
 
-# Start Docker Compose services in detached mode as the ec2-user
-sudo -u ec2-user -H sh -c "cd /home/ec2-user/monitoring && docker-compose up -d"
-EOF
+# Start Docker Compose services from the correct subdirectory
+sudo -u ec2-user -H sh -c "cd /home/ec2-user/app/docker && docker-compose up -d"
+EOF  
 }
 
 

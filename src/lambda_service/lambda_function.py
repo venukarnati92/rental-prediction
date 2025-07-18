@@ -1,6 +1,6 @@
 import os
 
-import model
+from . import model
 
 PREDICTIONS_STREAM_NAME = os.getenv('PREDICTIONS_STREAM_NAME', 'output_stream-mlops-zoomcamp')
 RUN_ID = os.getenv('RUN_ID')
