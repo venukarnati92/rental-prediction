@@ -9,6 +9,7 @@ A comprehensive machine learning pipeline for rental price prediction using AWS 
 - **Monitoring**: Data drift detection with Evidently and Grafana dashboards
 - **Testing**: Comprehensive unit tests with pytest
 - **CI/CD**: Pre-commit hooks for code quality and automated testing
+- **Code Quality**: Automated linting, formatting, and type checking
 
 ## 📋 Prerequisites
 
@@ -62,7 +63,14 @@ make test-coverage
 ### Run Specific Test File
 ```bash
 make test-specific FILE=test_orchestration.py
+make test-specific FILE=test_lambda_function.py
+make test-specific FILE=test_model.py
 ```
+
+### Available Test Files
+- `tests/unit/test_orchestration.py` - Tests for Prefect orchestration pipeline
+- `tests/unit/test_lambda_function.py` - Tests for AWS Lambda handler
+- `tests/unit/test_model.py` - Tests for ML model service and utilities
 
 ## 🔧 Pre-commit Hooks
 
@@ -165,15 +173,59 @@ docker-compose -f docker/docker-compose.yml up -d
 rental-prediction/
 ├── src/                    # Source code
 │   ├── lambda_service/     # AWS Lambda functions
+│   │   ├── lambda_function.py
+│   │   ├── model.py
+│   │   └── requirements.txt
 │   └── prefect/           # Prefect orchestration
+│       ├── orchestration.py
+│       └── setup.sh
 ├── tests/                 # Test files
 │   └── unit/             # Unit tests
+│       ├── test_orchestration.py
+│       ├── test_lambda_function.py
+│       └── test_model.py
 ├── terraform/             # Infrastructure as Code
 │   ├── infra/            # Infrastructure resources
-│   └── app/              # Application resources
+│   ├── app/              # Application resources
+│   └── modules/          # Reusable Terraform modules
 ├── docker/               # Docker configurations
+│   ├── docker-compose.yml
+│   ├── config/           # Grafana configurations
+│   └── dashboards/       # Monitoring dashboards
 ├── scripts/              # Utility scripts
-└── docs/                 # Documentation
+│   └── setup-hooks.sh   # Pre-commit setup script
+├── .pre-commit-config.yaml  # Pre-commit configuration
+├── .flake8              # Flake8 linting configuration
+├── requirements.txt      # Production dependencies
+├── requirements-dev.txt  # Development dependencies
+└── Makefile             # Build and deployment commands
+```
+
+## 🛠️ Available Make Commands
+
+```bash
+# Testing
+make test                 # Run all unit tests
+make test-verbose         # Run tests with verbose output
+make test-coverage        # Run tests with coverage report
+make test-specific FILE=test_file.py  # Run specific test file
+
+# Infrastructure
+make infra-plan          # Plan infrastructure changes
+make infra-apply         # Apply infrastructure changes
+make infra-destroy       # Destroy infrastructure
+make app-plan            # Plan application changes
+make app-apply           # Apply application changes
+make app-destroy         # Destroy application
+
+# Combined operations
+make all-init            # Initialize everything
+make all-destroy         # Destroy everything
+
+# Prefect
+make prefect-setup       # Setup Prefect with EC2
+make generate-ssh-key    # Generate SSH key for EC2
+make ssh-tunnel          # Start SSH tunnel for PostgreSQL
 ```
 
 ## 🤝 Contributing
@@ -184,6 +236,12 @@ rental-prediction/
 4. Add tests for new functionality
 5. Ensure all tests pass
 6. Submit a pull request
+
+### Code Quality Standards
+- All code must pass pre-commit hooks
+- Unit tests must be written for new functionality
+- Follow PEP 8 style guidelines
+- Use conventional commit messages
 
 ## 📝 License
 
