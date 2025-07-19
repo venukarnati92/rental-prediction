@@ -31,10 +31,64 @@ help:
 	@echo ""
 	@echo "Testing:"
 	@echo "  test                  - Run all unit tests"
+	@echo "  test-verbose          - Run all unit tests with verbose output"
+	@echo "  test-coverage         - Run unit tests with coverage report"
+	@echo "  test-specific         - Run specific test file (usage: make test-specific FILE=test_file.py)"
+	@echo "  test-integration      - Run all integration tests"
+	@echo "  test-integration-real - Run real data integration tests"
+	@echo "  test-integration-specific - Run specific integration test file"
+	@echo "  test-all              - Run all tests (unit + integration)"
 
+# ==============================================================================
+# TESTING TARGETS
+# ==============================================================================
 .PHONY: test
 test:
-	PYTHONPATH=src pytest tests/unit/
+	@echo "--> Running all unit tests..."
+	@PYTHONPATH=src pytest tests/unit/ -q
+
+.PHONY: test-verbose
+test-verbose:
+	@echo "--> Running all unit tests with verbose output..."
+	@PYTHONPATH=src pytest tests/unit/ -v
+
+.PHONY: test-coverage
+test-coverage:
+	@echo "--> Running unit tests with coverage report..."
+	@PYTHONPATH=src pytest tests/unit/ --cov=src --cov-report=term-missing --cov-report=html
+
+.PHONY: test-specific
+test-specific:
+	@if [ -z "$(FILE)" ]; then \
+		echo "Error: Please specify a test file. Usage: make test-specific FILE=test_file.py"; \
+		exit 1; \
+	fi
+	@echo "--> Running specific test file: $(FILE)..."
+	@PYTHONPATH=src pytest tests/unit/$(FILE) -v
+
+.PHONY: test-integration
+test-integration:
+	@echo "--> Running all integration tests..."
+	@PYTHONPATH=src pytest tests/integration/ -v
+
+.PHONY: test-integration-real
+test-integration-real:
+	@echo "--> Running real data integration tests..."
+	@PYTHONPATH=src pytest tests/integration/test_real_data_integration.py tests/integration/test_real_aws_integration.py -v
+
+.PHONY: test-integration-specific
+test-integration-specific:
+	@if [ -z "$(FILE)" ]; then \
+		echo "Error: Please specify a test file. Usage: make test-integration-specific FILE=test_file.py"; \
+		exit 1; \
+	fi
+	@echo "--> Running specific integration test file: $(FILE)..."
+	@PYTHONPATH=src pytest tests/integration/$(FILE) -v
+
+.PHONY: test-all
+test-all:
+	@echo "--> Running all tests (unit + integration)..."
+	@PYTHONPATH=src pytest tests/ -v
 
 .PHONY: prefect-setup
 prefect-setup: ssh-tunnel

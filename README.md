@@ -45,32 +45,47 @@ pre-commit install --hook-type commit-msg
 
 ## 🧪 Testing
 
-### Run All Tests
+### Unit Tests
+
+Run unit tests with:
 ```bash
-make test
+make test                    # Run all unit tests
+make test-verbose           # Run with verbose output
+make test-coverage          # Run with coverage report
+make test-specific FILE=test_file.py  # Run specific test file
 ```
 
-### Run Tests with Verbose Output
-```bash
-make test-verbose
-```
+### Integration Tests
 
-### Run Tests with Coverage
-```bash
-make test-coverage
-```
+Integration tests verify end-to-end functionality:
 
-### Run Specific Test File
 ```bash
-make test-specific FILE=test_orchestration.py
-make test-specific FILE=test_lambda_function.py
-make test-specific FILE=test_model.py
+make test-integration       # Run all integration tests
+make test-integration-real  # Run real data integration tests
+make test-integration-specific FILE=test_file.py  # Run specific integration test
+make test-all              # Run all tests (unit + integration)
 ```
 
 ### Available Test Files
+
+#### Unit Tests
 - `tests/unit/test_orchestration.py` - Tests for Prefect orchestration pipeline
 - `tests/unit/test_lambda_function.py` - Tests for AWS Lambda handler
 - `tests/unit/test_model.py` - Tests for ML model service and utilities
+
+#### Integration Tests
+- `tests/integration/test_pipeline_integration.py` - Complete pipeline integration tests
+- `tests/integration/test_aws_integration.py` - AWS service integration tests (mocked)
+- `tests/integration/test_monitoring_integration.py` - Monitoring and observability tests
+- `tests/integration/test_real_data_integration.py` - Real data integration tests
+- `tests/integration/test_real_aws_integration.py` - Real AWS service tests (when credentials available)
+
+### Integration Test Types
+
+1. **Mocked Integration Tests**: Use mocked services for fast, reliable testing
+2. **Real Data Integration Tests**: Use realistic data generation with real ML models
+3. **Real AWS Integration Tests**: Use actual AWS services when credentials are available
+4. **Monitoring Integration Tests**: Test Evidently, Grafana, and alerting systems
 
 ## 🔧 Pre-commit Hooks
 
@@ -180,10 +195,16 @@ rental-prediction/
 │       ├── orchestration.py
 │       └── setup.sh
 ├── tests/                 # Test files
-│   └── unit/             # Unit tests
-│       ├── test_orchestration.py
-│       ├── test_lambda_function.py
-│       └── test_model.py
+│   ├── unit/             # Unit tests
+│   │   ├── test_orchestration.py
+│   │   ├── test_lambda_function.py
+│   │   └── test_model.py
+│   └── integration/      # Integration tests
+│       ├── test_pipeline_integration.py
+│       ├── test_aws_integration.py
+│       ├── test_monitoring_integration.py
+│       ├── test_real_data_integration.py
+│       └── test_real_aws_integration.py
 ├── terraform/             # Infrastructure as Code
 │   ├── infra/            # Infrastructure resources
 │   ├── app/              # Application resources
@@ -209,6 +230,9 @@ make test                 # Run all unit tests
 make test-verbose         # Run tests with verbose output
 make test-coverage        # Run tests with coverage report
 make test-specific FILE=test_file.py  # Run specific test file
+make test-integration     # Run all integration tests
+make test-integration-real # Run real data integration tests
+make test-all             # Run all tests (unit + integration)
 
 # Infrastructure
 make infra-plan          # Plan infrastructure changes

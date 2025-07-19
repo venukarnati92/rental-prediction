@@ -11,5 +11,6 @@ pylint
 mypy
 bandit
 
-# Type stubs
-types-all
+# Type stubs (specific ones instead of types-all)
+types-requests
+types-PyYAML
