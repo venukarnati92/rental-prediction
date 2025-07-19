@@ -1,1 +1,15 @@
+# Testing
 pytest
+pytest-cov
+
+# Code Quality
+pre-commit
+black
+isort
+flake8
+pylint
+mypy
+bandit
+
+# Type stubs
+types-all
