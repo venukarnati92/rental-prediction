@@ -34,6 +34,7 @@ repos:
     hooks:
       - id: bandit
         args: [-r, src/]
+        exclude: ^tests/
 
   # Custom hooks for our project
   - repo: local

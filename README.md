@@ -1,272 +1,517 @@
-# Rental-Prediction
+# 🏠 Rental Price Prediction - ML Pipeline
 
-A comprehensive machine learning pipeline for rental price prediction using AWS services, Prefect orchestration, and modern DevOps practices.
+A comprehensive **Machine Learning Pipeline** for **rental price prediction** built on **AWS Cloud** with **Infrastructure as Code (IaC)**, **MLflow experiment tracking**, **Prefect orchestration**, and **real-time monitoring**. This project demonstrates MLOps solution for predicting rental prices using real estate data.
 
-## 🚀 Features
+## 🎯 Problem Statement
 
-- **ML Pipeline**: Automated data processing, feature engineering, and model training
-- **AWS Infrastructure**: Serverless Lambda functions, Kinesis streams, RDS database
-- **Monitoring**: Data drift detection with Evidently and Grafana dashboards
-- **Testing**: Comprehensive unit tests with pytest
-- **CI/CD**: Pre-commit hooks for code quality and automated testing
-- **Code Quality**: Automated linting, formatting, and type checking
+The rental market is highly dynamic with prices varying significantly based on location, property features, and market conditions. This project solves the challenge of:
 
-## 📋 Prerequisites
+- **Accurate Price Prediction**: Predicting rental prices based on property characteristics (bedrooms, bathrooms, square footage, location)
+- **Model Monitoring**: Detecting data drift and model performance degradation
+- **Scalable Infrastructure**: Deploying ML models in a cloud-native, serverless architecture
+- **Reproducible ML**: Tracking experiments, model versions, and deployment history
 
-- Python 3.8+
-- AWS CLI configured
-- Terraform
-- Docker (for local development)
+## 🏗️ AWS Cloud Infrastructure & IaC
 
-## 🛠️ Setup
+This project is built entirely on **AWS Cloud** using **Terraform** for Infrastructure as Code (IaC) to ensure reproducible, version-controlled infrastructure deployment.
 
-### 1. Clone the Repository
+### 🏢 Infrastructure Components
+
+#### **Core Infrastructure** (`terraform/infra/`)
+- **VPC & Networking**: Custom VPC with public/private subnets across multiple AZs
+- **Security Groups**: Fine-grained access control for EC2, RDS, and Lambda services
+- **S3 Bucket**: Artifact storage for models, data, and MLflow artifacts
+- **RDS PostgreSQL**: Managed database for MLflow metadata and experiment tracking
+- **EC2 Instance**: Multi-service host with automated deployment via user script
+  - **MLflow Server** (Port 5000): Experiment tracking and model registry
+  - **Prefect Server** (Port 4200): Workflow orchestration
+  - **Grafana** (Port 3000): Monitoring dashboards
+  - **PostgreSQL** (Port 5432): Local metrics database
+  - **Adminer** (Port 8080): Database management interface
+
+#### **Application Infrastructure** (`terraform/app/`)
+- **ECR Repository**: Container registry for Dockerized ML models
+- **Lambda Functions**: Serverless prediction service with auto-scaling
+- **Kinesis Streams**: Real-time data streaming for input/output processing
+- **IAM Roles & Policies**: Secure access management for all services
+
+### 🚀 Infrastructure Deployment
+
 ```bash
-git clone <repository-url>
+# Initialize Terraform state (first time only)
+make create-tfstate-bucket
+
+# Generate SSH key for EC2 access
+make generate-ssh-key
+
+# Deploy core infrastructure
+make infra-apply
+
+# Deploy application services
+make app-apply
+
+# View infrastructure status
+make infra-plan
+make app-plan
+
+# Clean up (destroy in reverse order)
+make app-destroy
+make infra-destroy
+```
+
+### 📊 Infrastructure Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        AWS Cloud                            │
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│  │   VPC       │  │   Security  │  │   S3        │         │
+│  │   (Custom)  │  │   Groups    │  │   Bucket    │         │
+│  └─────────────┘  └─────────────┘  └─────────────┘         │
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────────────────────────────────────────────────────┐ │
+│  │                    EC2 Instance                         │ │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐     │ │
+│  │  │   MLflow    │  │   Prefect   │  │   Grafana   │     │ │
+│  │  │   Server    │  │   Server    │  │   (Port     │     │ │
+│  │  │   (Port     │  │   (Port     │  │   3000)     │     │ │
+│  │  │   5000)     │  │   4200)     │  │             │     │ │
+│  │  └─────────────┘  └─────────────┘  └─────────────┘     │ │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐     │ │
+│  │  │ PostgreSQL  │  │   Adminer   │  │   Docker    │     │ │
+│  │  │   (Port     │  │   (Port     │  │   Compose   │     │ │
+│  │  │   5432)     │  │   8080)     │  │   Stack     │     │ │
+│  │  └─────────────┘  └─────────────┘  └─────────────┘     │ │
+│  └─────────────────────────────────────────────────────────┘ │
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│  │   RDS       │  │   ECR       │  │   Lambda    │         │
+│  │   PostgreSQL│  │   Registry  │  │   Functions │         │
+│  │   (Backend) │  │             │  │             │         │
+│  └─────────────┘  └─────────────┘  └─────────────┘         │
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│  │   Kinesis   │  │   CloudWatch│  │   IAM       │         │
+│  │   Streams   │  │   Logs      │  │   Roles     │         │
+│  └─────────────┘  └─────────────┘  └─────────────┘         │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## 🔬 MLflow Experiment Tracking & Model Registry
+
+**MLflow** is used for comprehensive experiment tracking and model registry, hosted on EC2 with S3 backend storage.
+
+### 🎯 Services Deployed on EC2
+
+The EC2 instance hosts multiple services deployed via Terraform:
+
+#### **MLflow Services**
+- **MLflow Tracking Server** (Port 5000): Experiment tracking and metric logging
+- **MLflow Model Registry**: Model versioning and lifecycle management
+- **S3 Backend**: Artifact storage for models and experiment data
+- **RDS PostgreSQL Backend**: Metadata storage for experiments and runs
+
+#### **Prefect Services**
+- **Prefect Server** (Port 4200): Workflow orchestration and scheduling
+- **Prefect Worker**: Task execution and monitoring
+- **PostgreSQL Backend**: Workflow state and metadata storage
+
+#### **Monitoring Services (Docker Compose)**
+- **Grafana** (Port 3000): Visualization and monitoring dashboards
+- **PostgreSQL** (Port 5432): Local database for metrics storage
+- **Adminer** (Port 8080): Database management interface
+
+### 📈 Experiment Tracking Features
+
+```python
+# MLflow integration in orchestration
+mlflow.set_tracking_uri(f"http://{host_name}:5000")
+mlflow.set_experiment("rental-prediction")
+
+with mlflow.start_run():
+    mlflow.set_tag("model", "xgboost")
+    mlflow.log_params(xgb_params)
+    mlflow.log_metric("rmse", rmse)
+    mlflow.sklearn.log_model(pipeline, artifact_path="model")
+```
+
+### 🔍 Model Registry Capabilities
+
+- **Model Versioning**: Track model versions with metadata
+- **Model Lineage**: Link models to specific experiments and data
+- **Model Deployment**: Manage model deployment stages (Staging, Production)
+- **Artifact Storage**: Store model artifacts in S3 with versioning
+- **Performance Tracking**: Monitor model performance over time
+
+#### **Service Ports & Access**
+```bash
+# MLflow Services
+MLflow UI: http://<EC2-PUBLIC-IP>:5000
+Prefect UI: http://<EC2-PUBLIC-IP>:4200
+
+# Monitoring Services
+Grafana: http://<EC2-PUBLIC-IP>:3000 (admin/admin)
+Adminer: http://<EC2-PUBLIC-IP>:8080 (database management)
+PostgreSQL: <EC2-PUBLIC-IP>:5432 (local database)
+```
+
+#### **Setup Commands**
+```bash
+# SSH tunnel for database access
+make ssh-tunnel
+
+# Setup all services on EC2
+make prefect-setup
+
+# Access EC2 instance
+ssh -i my-key.pem ec2-user@<EC2-PUBLIC-IP>
+```
+
+## ⚡ Prefect Server Orchestration
+
+**Prefect** provides robust workflow orchestration for the ML pipeline with:
+
+### 🎯 Prefect Services on EC2
+
+- **Prefect Server**: Workflow orchestration and scheduling
+- **Prefect Agent**: Task execution and monitoring
+- **PostgreSQL Backend**: Workflow state and metadata storage
+
+
+### 📊 Prefect Capabilities
+
+- **Task Retries**: Automatic retry with exponential backoff
+- **Monitoring**: Real-time workflow monitoring and alerting
+- **Scheduling**: Automated pipeline scheduling and triggering
+- **Error Handling**: Robust error handling and recovery
+- **Artifacts**: Rich artifact storage and visualization
+
+## 🐳 Containerized Model Deployment
+
+The ML model is **containerized** using **Docker** and deployed to **AWS ECR** for scalable, reproducible deployments.
+
+
+### 🚀 Deployment Pipeline
+
+1. **Model Training**: MLflow tracks model training and artifacts
+2. **Container Build**: Docker image built with trained model
+3. **ECR Push**: Image pushed to AWS ECR registry
+4. **Lambda Deployment**: Serverless function updated with new model
+5. **Traffic Routing**: Kinesis streams route traffic to new model
+
+### 🔧 Deployment Commands
+
+```bash
+# Build and push container
+make app-apply
+
+# Deploy Lambda function
+make lambda-deploy
+
+# Update model version
+make update-model
+```
+
+## 📊 Comprehensive Model Monitoring
+
+**Real-time monitoring** with **conditional workflows** and **automated alerts** when metrics thresholds are violated.
+
+### 🔍 Monitoring Stack
+
+#### **Evidently AI** - Data Drift Detection
+- **Column Drift**: Monitor individual feature drift
+- **Dataset Drift**: Overall dataset distribution changes
+- **Missing Values**: Track data quality degradation
+- **Quantile Monitoring**: Price distribution changes
+
+#### **Grafana** - Visualization & Dashboards
+- **Real-time Metrics**: Live model performance metrics
+- **Data Drift Alerts**: Visual alerts for drift detection
+- **Performance Trends**: Historical performance tracking
+- **Custom Dashboards**: Tailored monitoring views
+
+#### **PostgreSQL** - Metrics Storage
+- **Structured Storage**: Organized metrics storage
+- **Historical Data**: Long-term performance tracking
+- **Query Capabilities**: Complex metric analysis
+
+### 🚨 Conditional Workflows
+
+When monitoring thresholds are violated, the system triggers:
+
+1. **Alert Generation**: Immediate notification via CloudWatch
+2. **Model Retraining**: Automatic retraining pipeline initiation
+3. **Debug Dashboard**: Enhanced monitoring dashboard activation
+4. **Model Rollback**: Fallback to previous stable model version
+5. **Performance Analysis**: Detailed performance investigation
+
+### 📈 Monitoring Metrics
+
+```python
+# Key monitoring metrics
+- Prediction Drift: Model prediction distribution changes
+- Data Drift: Input feature distribution changes
+- Missing Values: Data quality degradation
+- Price Quantiles: Rental price distribution changes
+- Model Performance: RMSE, MAE tracking over time
+```
+
+### 🎛️ Monitoring Setup
+
+#### **Production (EC2)**
+The monitoring stack is automatically deployed on EC2 via Terraform:
+
+```bash
+# Services are automatically started on EC2 boot
+# Access via EC2 public IP:
+# Grafana: http://<EC2-PUBLIC-IP>:3000 (admin/admin)
+# Adminer: http://<EC2-PUBLIC-IP>:8080 (database management)
+# PostgreSQL: <EC2-PUBLIC-IP>:5432
+
+# Manual restart if needed (SSH to EC2)
+cd /home/ec2-user/app/docker
+docker-compose down
+docker-compose up -d
+```
+
+#### **Docker Compose Services**
+```yaml
+# Monitoring stack includes:
+- Grafana (Port 3000): Visualization dashboards
+- PostgreSQL (Port 5432): Local metrics database
+- Adminer (Port 8080): Database management interface
+```
+
+## 🚀 Quick Start Guide
+
+### 📋 Prerequisites
+
+- **Python 3.8+**
+- **AWS CLI** configured with appropriate permissions
+- **Terraform** installed
+- **Docker** for local development
+- **Git** for version control
+
+### 🛠️ Installation & Setup
+
+#### 1. **Clone Repository**
+```bash
+git clone https://github.com/venukarnati92/rental-prediction.git
 cd rental-prediction
 ```
 
-### 2. Install Dependencies
+#### 2. **Install Dependencies**
 ```bash
+#virtual env setup is recommended
+# Production dependencies
 pip install -r requirements.txt
+
+# Development dependencies
 pip install -r requirements-dev.txt
 ```
 
-### 3. Setup Pre-commit Hooks (Recommended)
+#### 3. **Setup Pre-commit Hooks**
 ```bash
-# Run the setup script
+# Automated code quality checks
 ./scripts/setup-hooks.sh
-
-# Or manually install pre-commit
-pip install pre-commit
-pre-commit install
-pre-commit install --hook-type commit-msg
 ```
 
-## 🧪 Testing
-
-### Unit Tests
-
-Run unit tests with:
+#### 4. **Configure AWS**
 ```bash
-make test                    # Run all unit tests
-make test-verbose           # Run with verbose output
-make test-coverage          # Run with coverage report
-make test-specific FILE=test_file.py  # Run specific test file
+# Configure AWS credentials
+aws configure
+
+# Verify access
+aws sts get-caller-identity
 ```
 
-### Integration Tests
+### 🏗️ Infrastructure Deployment
 
-Integration tests verify end-to-end functionality:
-
-```bash
-make test-integration       # Run all integration tests
-make test-integration-real  # Run real data integration tests
-make test-integration-specific FILE=test_file.py  # Run specific integration test
-make test-all              # Run all tests (unit + integration)
-```
-
-### Available Test Files
-
-#### Unit Tests
-- `tests/unit/test_orchestration.py` - Tests for Prefect orchestration pipeline
-- `tests/unit/test_lambda_function.py` - Tests for AWS Lambda handler
-- `tests/unit/test_model.py` - Tests for ML model service and utilities
-
-#### Integration Tests
-- `tests/integration/test_pipeline_integration.py` - Complete pipeline integration tests
-- `tests/integration/test_aws_integration.py` - AWS service integration tests (mocked)
-- `tests/integration/test_monitoring_integration.py` - Monitoring and observability tests
-- `tests/integration/test_real_data_integration.py` - Real data integration tests
-- `tests/integration/test_real_aws_integration.py` - Real AWS service tests (when credentials available)
-
-### Integration Test Types
-
-1. **Mocked Integration Tests**: Use mocked services for fast, reliable testing
-2. **Real Data Integration Tests**: Use realistic data generation with real ML models
-3. **Real AWS Integration Tests**: Use actual AWS services when credentials are available
-4. **Monitoring Integration Tests**: Test Evidently, Grafana, and alerting systems
-
-## 🔧 Pre-commit Hooks
-
-This project uses pre-commit hooks to ensure code quality. The hooks run automatically on every commit and include:
-
-### Pre-commit Checks:
-- **Python Syntax**: Validates Python syntax
-- **Code Formatting**: Black formatter with 88-character line length
-- **Import Sorting**: isort for consistent import organization
-- **Linting**: flake8 for style and error checking
-- **Type Checking**: mypy for static type analysis
-- **Security**: bandit for security vulnerability scanning
-- **Unit Tests**: Runs all unit tests before commit
-
-### Commit Message Validation:
-- **Non-empty**: Commit messages cannot be empty
-- **Minimum Length**: At least 10 characters
-- **Format**: Suggests conventional commit format
-- **Style**: Warns about common bad practices
-
-### Manual Hook Execution:
-```bash
-# Run all hooks on all files
-pre-commit run --all-files
-
-# Run hooks on staged files only
-pre-commit run
-
-# Update hook versions
-pre-commit autoupdate
-```
-
-## 🏗️ Infrastructure
-
-### Deploy Infrastructure
+#### 1. **Deploy Core Infrastructure**
 ```bash
 # Create Terraform state bucket (first time only)
 make create-tfstate-bucket
 
-# Deploy infrastructure
+# Deploy VPC, RDS, EC2, S3
 make infra-apply
+```
 
-# Deploy application
+#### 2. **Deploy Application Services**
+```bash
+# Deploy Lambda, Kinesis, ECR
 make app-apply
 ```
 
-### Destroy Infrastructure
+#### 3. **Setup MLflow & Prefect**
 ```bash
-# Destroy application first
-make app-destroy
+# Setup services on EC2
+make prefect-setup
 
-# Then destroy infrastructure
-make infra-destroy
+# Generate SSH key for access
+make generate-ssh-key
 ```
 
-## 📊 Monitoring
+### 🧪 Testing
 
-### Start Monitoring Stack
+#### **Unit Tests**
 ```bash
-# Start Grafana and monitoring services
-docker-compose -f docker/docker-compose.yml up -d
+make test                    # Run all unit tests
+make test-verbose           # Run with verbose output
+make test-coverage          # Run with coverage report
 ```
 
-### Access Dashboards
-- **Grafana**: http://localhost:3000 (admin/admin)
-- **Data Drift Dashboard**: Available in Grafana
+#### **Integration Tests**
+```bash
+make test-integration       # Run all integration tests
+make test-integration-real  # Run real data integration tests
+make test-all              # Run all tests
+```
 
-## 🏃‍♂️ Development Workflow
+#### 3. **Test Predictions**
+```bash
+# Test Lambda function
+aws lambda invoke --function-name rental-prediction-lambda \
+  --payload '{"features": {"bedrooms": 2, "bathrooms": 2, "square_feet": 1000, "cityname": "New York", "state": "NY"}}' \
+  response.json
+```
 
-1. **Create Feature Branch**
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
+### 📊 Access Services
 
-2. **Make Changes**
-   - Write code
-   - Add tests
-   - Update documentation
+#### **Production (EC2)**
+- **MLflow UI**: `http://<EC2-PUBLIC-IP>:5000`
+- **Prefect UI**: `http://<EC2-PUBLIC-IP>:4200`
+- **Grafana**: `http://<EC2-PUBLIC-IP>:3000` (admin/admin)
+- **Adminer**: `http://<EC2-PUBLIC-IP>:8080` (database management)
+- **PostgreSQL**: `<EC2-PUBLIC-IP>:5432` (local database)
 
-3. **Test Your Changes**
-   ```bash
-   make test
-   pre-commit run --all-files
-   ```
+#### **Local Development**
+- **Grafana**: `http://localhost:3000` (admin/admin)
+- **Adminer**: `http://localhost:8080` (database management)
+- **PostgreSQL**: `localhost:5432` (local database)
 
-4. **Commit Changes**
-   ```bash
-   git add .
-   git commit -m "feat: add new feature description"
-   ```
-
-5. **Push and Create PR**
-   ```bash
-   git push origin feature/your-feature-name
-   ```
-
-## 📁 Project Structure
+## 🏗️ Project Structure
 
 ```
 rental-prediction/
-├── src/                    # Source code
-│   ├── lambda_service/     # AWS Lambda functions
-│   │   ├── lambda_function.py
-│   │   ├── model.py
-│   │   └── requirements.txt
-│   └── prefect/           # Prefect orchestration
-│       ├── orchestration.py
-│       └── setup.sh
-├── tests/                 # Test files
-│   ├── unit/             # Unit tests
-│   │   ├── test_orchestration.py
-│   │   ├── test_lambda_function.py
-│   │   └── test_model.py
-│   └── integration/      # Integration tests
-│       ├── test_pipeline_integration.py
-│       ├── test_aws_integration.py
-│       ├── test_monitoring_integration.py
-│       ├── test_real_data_integration.py
-│       └── test_real_aws_integration.py
-├── terraform/             # Infrastructure as Code
-│   ├── infra/            # Infrastructure resources
-│   ├── app/              # Application resources
-│   └── modules/          # Reusable Terraform modules
-├── docker/               # Docker configurations
-│   ├── docker-compose.yml
-│   ├── config/           # Grafana configurations
-│   └── dashboards/       # Monitoring dashboards
-├── scripts/              # Utility scripts
-│   └── setup-hooks.sh   # Pre-commit setup script
-├── .pre-commit-config.yaml  # Pre-commit configuration
-├── .flake8              # Flake8 linting configuration
-├── requirements.txt      # Production dependencies
-├── requirements-dev.txt  # Development dependencies
-└── Makefile             # Build and deployment commands
+├── src/                          # Source code
+│   ├── lambda_service/           # AWS Lambda functions
+│   │   ├── lambda_function.py    # Prediction service
+│   │   ├── model.py             # Model loading & inference
+│   │   ├── Dockerfile           # Container configuration
+│   │   └── requirements.txt     # Lambda dependencies
+│   └── prefect/                 # Prefect orchestration
+│       ├── orchestration.py     # Main ML pipeline
+│       └── setup.sh            # EC2 setup script
+├── terraform/                   # Infrastructure as Code
+│   ├── infra/                  # Core infrastructure
+│   │   ├── main.tf            # VPC, RDS, EC2, S3
+│   │   └── variables.tf       # Infrastructure variables
+│   ├── app/                   # Application infrastructure
+│   │   ├── main.tf           # Lambda, Kinesis, ECR
+│   │   └── variables.tf      # Application variables
+│   └── modules/              # Reusable Terraform modules
+│       ├── ec2/             # EC2 instance module
+│       ├── lambda/          # Lambda function module
+│       ├── rds/            # RDS database module
+│       ├── vpc/            # VPC networking module
+│       └── kinesis/        # Kinesis streams module
+├── tests/                    # Comprehensive testing
+│   ├── unit/               # Unit tests
+│   └── integration/        # Integration tests
+├── docker/                 # Container configurations
+│   ├── docker-compose.yml  # Monitoring stack
+│   ├── config/            # Grafana configurations
+│   └── dashboards/        # Monitoring dashboards
+├── scripts/               # Utility scripts
+├── requirements.txt       # Production dependencies
+├── requirements-dev.txt   # Development dependencies
+└── Makefile              # Build and deployment commands
 ```
 
-## 🛠️ Available Make Commands
+## 🛠️ Available Commands
 
+### **Testing Commands**
 ```bash
-# Testing
 make test                 # Run all unit tests
-make test-verbose         # Run tests with verbose output
-make test-coverage        # Run tests with coverage report
-make test-specific FILE=test_file.py  # Run specific test file
 make test-integration     # Run all integration tests
 make test-integration-real # Run real data integration tests
-make test-all             # Run all tests (unit + integration)
+make test-all            # Run all tests
+```
 
-# Infrastructure
+### **Infrastructure Commands**
+```bash
 make infra-plan          # Plan infrastructure changes
-make infra-apply         # Apply infrastructure changes
+make infra-apply         # Deploy infrastructure
 make infra-destroy       # Destroy infrastructure
-make app-plan            # Plan application changes
-make app-apply           # Apply application changes
-make app-destroy         # Destroy application
+make app-plan           # Plan application changes
+make app-apply          # Deploy application
+make app-destroy        # Destroy application
+```
 
-# Combined operations
-make all-init            # Initialize everything
-make all-destroy         # Destroy everything
-
-# Prefect
-make prefect-setup       # Setup Prefect with EC2
+### **Development Commands**
+```bash
+make prefect-setup       # Setup Prefect on EC2
 make generate-ssh-key    # Generate SSH key for EC2
-make ssh-tunnel          # Start SSH tunnel for PostgreSQL
+make ssh-tunnel          # Start SSH tunnel
+make all-init           # Initialize everything
+make all-destroy        # Destroy everything
+```
+
+## 🔧 Configuration
+
+### **Environment Variables**
+```bash
+# AWS Configuration
+AWS_ACCESS_KEY_ID=your_access_key
+AWS_SECRET_ACCESS_KEY=your_secret_key
+AWS_DEFAULT_REGION=us-east-1
+
+# MLflow Configuration
+MLFLOW_TRACKING_URI=http://<EC2-IP>:5000
+MLFLOW_EXPERIMENT_ID=1
+
+# Database Configuration
+DB_HOST=<RDS-ENDPOINT>
+DB_NAME=rentalprediction
+DB_USER=postgres
+DB_PASSWORD=example
+```
+
+### **Terraform Variables**
+```bash
+# Infrastructure variables (terraform/infra/variables.tf)
+project_id = "rental-prediction"
+rds_username = "postgres"
+rds_password = "example"
+rds_db_name = "rentalprediction"
+
+# Application variables (terraform/app/variables.tf)
+lambda_function_name = "rental-prediction"
+ecr_repo_name = "rental-prediction"
+source_stream_name = "input-stream"
+output_stream_name = "output-stream"
 ```
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass
-6. Submit a pull request
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
+3. **Commit** your changes (`git commit -m 'feat: add amazing feature'`)
+4. **Push** to the branch (`git push origin feature/amazing-feature`)
+5. **Open** a Pull Request
 
-### Code Quality Standards
+### **Code Quality Standards**
 - All code must pass pre-commit hooks
-- Unit tests must be written for new functionality
+- Unit tests required for new functionality
 - Follow PEP 8 style guidelines
 - Use conventional commit messages
+- Integration tests for new features
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the LICENSE file for details. 
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+**Built with ❤️ using AWS, Terraform, MLflow, Prefect, and modern MLOps practices** 
