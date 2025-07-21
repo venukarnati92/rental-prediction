@@ -11,9 +11,96 @@ The rental market is highly dynamic with prices varying significantly based on l
 - **Scalable Infrastructure**: Deploying ML models in a cloud-native, serverless architecture
 - **Reproducible ML**: Tracking experiments, model versions, and deployment history
 
+## 🏗️ Project Structure
+
+```
+rental-prediction/
+├── src/                          # Source code
+│   ├── lambda_service/           # AWS Lambda functions
+│   │   ├── lambda_function.py    # Prediction service
+│   │   ├── model.py             # Model loading & inference
+│   │   ├── Dockerfile           # Container configuration
+│   │   └── requirements.txt     # Lambda dependencies
+│   └── prefect/                 # Prefect orchestration
+│       ├── orchestration.py     # Main ML pipeline
+│       └── setup.sh            # EC2 setup script
+├── terraform/                   # Infrastructure as Code
+│   ├── infra/                  # Core infrastructure
+│   │   ├── main.tf            # VPC, RDS, EC2, S3
+│   │   └── variables.tf       # Infrastructure variables
+│   ├── app/                   # Application infrastructure
+│   │   ├── main.tf           # Lambda, Kinesis, ECR
+│   │   └── variables.tf      # Application variables
+│   └── modules/              # Reusable Terraform modules
+│       ├── ec2/             # EC2 instance module
+│       ├── lambda/          # Lambda function module
+│       ├── rds/            # RDS database module
+│       ├── vpc/            # VPC networking module
+│       └── kinesis/        # Kinesis streams module
+├── tests/                    # Comprehensive testing
+│   ├── unit/               # Unit tests
+│   └── integration/        # Integration tests
+├── docker/                 # Container configurations
+│   ├── docker-compose.yml  # Monitoring stack
+│   ├── config/            # Grafana configurations
+│   └── dashboards/        # Monitoring dashboards
+├── scripts/               # Utility scripts
+├── requirements.txt       # Production dependencies
+├── requirements-dev.txt   # Development dependencies
+└── Makefile              # Build and deployment commands
+```
+
 ## 🏗️ AWS Cloud Infrastructure & IaC
 
 This project is built entirely on **AWS Cloud** using **Terraform** for Infrastructure as Code (IaC) to ensure reproducible, version-controlled infrastructure deployment.
+
+## 🔧 Configuration
+
+### **AWS Profile Configuration**
+
+This project uses the **`acg` AWS profile** for authentication and deployment. You need to configure your AWS credentials and profile before running the infrastructure deployment.
+
+#### **1. AWS Credentials Setup**
+
+Create or update your AWS credentials file at `~/.aws/credentials`:
+
+```ini
+[acg]
+aws_access_key_id     = YOUR_ACCESS_KEY_ID
+aws_secret_access_key = YOUR_SECRET_ACCESS_KEY
+```
+
+#### **2. AWS Config Setup**
+
+Create or update your AWS config file at `~/.aws/config`:
+
+```ini
+[profile acg]
+region = us-east-1
+output = json
+```
+
+#### **3. Profile Usage**
+
+The project automatically uses the `acg` profile for:
+- **Terraform deployments** (infrastructure and application)
+- **AWS CLI operations**
+- **Integration tests** with real AWS services
+- **Local development** and testing
+
+#### **4. Environment Variables (Alternative)**
+
+If you prefer using environment variables instead of the profile, you can set:
+
+```bash
+# AWS Configuration
+AWS_ACCESS_KEY_ID=your_access_key
+AWS_SECRET_ACCESS_KEY=your_secret_key
+AWS_DEFAULT_REGION=us-east-1
+```
+
+**Note**: The `acg` profile takes precedence over environment variables.
+
 
 ### 🏢 Infrastructure Components
 
@@ -392,45 +479,6 @@ aws lambda invoke --function-name rental-prediction-lambda \
 - **Adminer**: `http://localhost:8080` (database management)
 - **PostgreSQL**: `localhost:5432` (local database)
 
-## 🏗️ Project Structure
-
-```
-rental-prediction/
-├── src/                          # Source code
-│   ├── lambda_service/           # AWS Lambda functions
-│   │   ├── lambda_function.py    # Prediction service
-│   │   ├── model.py             # Model loading & inference
-│   │   ├── Dockerfile           # Container configuration
-│   │   └── requirements.txt     # Lambda dependencies
-│   └── prefect/                 # Prefect orchestration
-│       ├── orchestration.py     # Main ML pipeline
-│       └── setup.sh            # EC2 setup script
-├── terraform/                   # Infrastructure as Code
-│   ├── infra/                  # Core infrastructure
-│   │   ├── main.tf            # VPC, RDS, EC2, S3
-│   │   └── variables.tf       # Infrastructure variables
-│   ├── app/                   # Application infrastructure
-│   │   ├── main.tf           # Lambda, Kinesis, ECR
-│   │   └── variables.tf      # Application variables
-│   └── modules/              # Reusable Terraform modules
-│       ├── ec2/             # EC2 instance module
-│       ├── lambda/          # Lambda function module
-│       ├── rds/            # RDS database module
-│       ├── vpc/            # VPC networking module
-│       └── kinesis/        # Kinesis streams module
-├── tests/                    # Comprehensive testing
-│   ├── unit/               # Unit tests
-│   └── integration/        # Integration tests
-├── docker/                 # Container configurations
-│   ├── docker-compose.yml  # Monitoring stack
-│   ├── config/            # Grafana configurations
-│   └── dashboards/        # Monitoring dashboards
-├── scripts/               # Utility scripts
-├── requirements.txt       # Production dependencies
-├── requirements-dev.txt   # Development dependencies
-└── Makefile              # Build and deployment commands
-```
-
 ## 🛠️ Available Commands
 
 ### **Testing Commands**
@@ -460,81 +508,6 @@ make generate-ssh-key    # Generate SSH key for EC2
 make ssh-tunnel          # Start SSH tunnel
 make all-init           # Initialize everything
 make all-destroy        # Destroy everything
-```
-
-## 🔧 Configuration
-
-### **AWS Profile Configuration**
-
-This project uses the **`acg` AWS profile** for authentication and deployment. You need to configure your AWS credentials and profile before running the infrastructure deployment.
-
-#### **1. AWS Credentials Setup**
-
-Create or update your AWS credentials file at `~/.aws/credentials`:
-
-```ini
-[acg]
-aws_access_key_id     = YOUR_ACCESS_KEY_ID
-aws_secret_access_key = YOUR_SECRET_ACCESS_KEY
-```
-
-#### **2. AWS Config Setup**
-
-Create or update your AWS config file at `~/.aws/config`:
-
-```ini
-[profile acg]
-region = us-east-1
-output = json
-```
-
-#### **3. Profile Usage**
-
-The project automatically uses the `acg` profile for:
-- **Terraform deployments** (infrastructure and application)
-- **AWS CLI operations**
-- **Integration tests** with real AWS services
-- **Local development** and testing
-
-#### **4. Environment Variables (Alternative)**
-
-If you prefer using environment variables instead of the profile, you can set:
-
-```bash
-# AWS Configuration
-AWS_ACCESS_KEY_ID=your_access_key
-AWS_SECRET_ACCESS_KEY=your_secret_key
-AWS_DEFAULT_REGION=us-east-1
-```
-
-**Note**: The `acg` profile takes precedence over environment variables.
-
-### **Environment Variables**
-```bash
-# MLflow Configuration
-MLFLOW_TRACKING_URI=http://<EC2-IP>:5000
-MLFLOW_EXPERIMENT_ID=1
-
-# Database Configuration
-DB_HOST=<RDS-ENDPOINT>
-DB_NAME=rentalprediction
-DB_USER=postgres
-DB_PASSWORD=example
-```
-
-### **Terraform Variables**
-```bash
-# Infrastructure variables (terraform/infra/variables.tf)
-project_id = "rental-prediction"
-rds_username = "postgres"
-rds_password = "example"
-rds_db_name = "rentalprediction"
-
-# Application variables (terraform/app/variables.tf)
-lambda_function_name = "rental-prediction"
-ecr_repo_name = "rental-prediction"
-source_stream_name = "input-stream"
-output_stream_name = "output-stream"
 ```
 
 ## 🤝 Contributing
