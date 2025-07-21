@@ -37,6 +37,8 @@ This project is built entirely on **AWS Cloud** using **Terraform** for Infrastr
 
 ### 🚀 Infrastructure Deployment
 
+**Prerequisites**: Ensure your AWS `acg` profile is configured as described in the [Configuration](#-configuration) section.
+
 ```bash
 # Initialize Terraform state (first time only)
 make create-tfstate-bucket
@@ -44,10 +46,10 @@ make create-tfstate-bucket
 # Generate SSH key for EC2 access
 make generate-ssh-key
 
-# Deploy core infrastructure
+# Deploy core infrastructure (uses acg profile)
 make infra-apply
 
-# Deploy application services
+# Deploy application services (uses acg profile)
 make app-apply
 
 # View infrastructure status
@@ -434,10 +436,12 @@ rental-prediction/
 ### **Testing Commands**
 ```bash
 make test                 # Run all unit tests
-make test-integration     # Run all integration tests
-make test-integration-real # Run real data integration tests
+make test-integration     # Run all integration tests (uses acg profile)
+make test-integration-real # Run real data integration tests (uses acg profile)
 make test-all            # Run all tests
 ```
+
+**Note**: Integration tests that interact with AWS services require the `acg` profile to be configured.
 
 ### **Infrastructure Commands**
 ```bash
@@ -460,13 +464,53 @@ make all-destroy        # Destroy everything
 
 ## 🔧 Configuration
 
-### **Environment Variables**
+### **AWS Profile Configuration**
+
+This project uses the **`acg` AWS profile** for authentication and deployment. You need to configure your AWS credentials and profile before running the infrastructure deployment.
+
+#### **1. AWS Credentials Setup**
+
+Create or update your AWS credentials file at `~/.aws/credentials`:
+
+```ini
+[acg]
+aws_access_key_id     = YOUR_ACCESS_KEY_ID
+aws_secret_access_key = YOUR_SECRET_ACCESS_KEY
+```
+
+#### **2. AWS Config Setup**
+
+Create or update your AWS config file at `~/.aws/config`:
+
+```ini
+[profile acg]
+region = us-east-1
+output = json
+```
+
+#### **3. Profile Usage**
+
+The project automatically uses the `acg` profile for:
+- **Terraform deployments** (infrastructure and application)
+- **AWS CLI operations**
+- **Integration tests** with real AWS services
+- **Local development** and testing
+
+#### **4. Environment Variables (Alternative)**
+
+If you prefer using environment variables instead of the profile, you can set:
+
 ```bash
 # AWS Configuration
 AWS_ACCESS_KEY_ID=your_access_key
 AWS_SECRET_ACCESS_KEY=your_secret_key
 AWS_DEFAULT_REGION=us-east-1
+```
 
+**Note**: The `acg` profile takes precedence over environment variables.
+
+### **Environment Variables**
+```bash
 # MLflow Configuration
 MLFLOW_TRACKING_URI=http://<EC2-IP>:5000
 MLFLOW_EXPERIMENT_ID=1
