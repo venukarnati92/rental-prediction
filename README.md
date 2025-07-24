@@ -169,14 +169,6 @@ Naviate to browser http://<<EC2-PUBLIC-IP>>:4200/deployments and execute the dep
 This will build the model, upload model to S3 using mlflow and Publish evidently metrics
 ```
 
-### 📊 Prefect Capabilities
-
-- **Task Retries**: Automatic retry with exponential backoff
-- **Monitoring**: Real-time workflow monitoring and alerting
-- **Scheduling**: Automated pipeline scheduling and triggering
-- **Error Handling**: Robust error handling and recovery
-- **Artifacts**: Rich artifact storage and visualization
-
 ### Deploy Application Service
 
 #### 1. **Deploy App Infrastructure**
@@ -273,13 +265,6 @@ Prediction event: {
 - **Lambda Functions**: Serverless prediction service with auto-scaling
 - **Kinesis Streams**: Real-time data streaming for input/output processing
 - **IAM Roles & Policies**: Secure access management for all services
-
-### 🚀 Infrastructure Teardown
-
-```bash
-make app-destroy
-make infra-destroy
-```
 
 ## ⚡ Prefect Server Orchestration
 
