@@ -85,8 +85,6 @@ output = json
 The project automatically uses the `acg` profile for:
 - **Terraform deployments** (infrastructure and application)
 - **AWS CLI operations**
-- **Integration tests** with real AWS services
-- **Local development** and testing
 
 #### **4. Environment Variables (Alternative)**
 
@@ -247,11 +245,13 @@ PostgreSQL: <EC2-PUBLIC-IP>:5432 (local database)
 
 #### **Setup Commands**
 ```bash
-# SSH tunnel for database access
+Open a new Terminal and run the ssh-tunnel # SSH tunnel for database access
 make ssh-tunnel
 
 # Setup all services on EC2
 make prefect-setup
+
+Naviate to browser http://<<EC2-PUBLIC-IP>>:4200/deployments and execute the deployment this will build the model and will upload model to S3 and Publish evidently metrics
 
 # Access EC2 instance
 ssh -i my-key.pem ec2-user@<EC2-PUBLIC-IP>
@@ -292,14 +292,21 @@ The ML model is **containerized** using **Docker** and deployed to **AWS ECR** f
 ### 🔧 Deployment Commands
 
 ```bash
-# Build and push container
+# Build and push container you need to have a docker running on local machine I am using docker desktop on my local machine
 make app-apply
 
-# Deploy Lambda function
-make lambda-deploy
+Get the model location from s3 example
+s3://mlops-zoomcamp-bucket-2025/1/models/m-d07fd6cf5ed6418bbbfc3668f5c95042/artifacts/
 
-# Update model version
-make update-model
+# Call aws cli to update Lambda function
+make lambda-deploy RUN_ID=<run_id>
+
+# Add record to kinesis stream
+make kinesis-put-record
+
+Navigate to AWS Console > CloudWatch > Log groups
+
+You will see a log group called /aws/lambda/lambda_function_rental_prediction_mlops-zoomcamp you should see rental prediction
 ```
 
 ## 📊 Comprehensive Model Monitoring
@@ -478,6 +485,73 @@ aws lambda invoke --function-name rental-prediction-lambda \
 - **Grafana**: `http://localhost:3000` (admin/admin)
 - **Adminer**: `http://localhost:8080` (database management)
 - **PostgreSQL**: `localhost:5432` (local database)
+
+## ⚡ Quick Model Evaluation
+
+If you want to **quickly evaluate the rental prediction model** without going through the full setup, follow these steps:
+
+### 🎯 Prerequisites
+- **AWS CLI** configured with `acg` profile (see [Configuration](#-configuration))
+- **Docker** running on your local machine
+- **Terraform** installed
+
+### 🚀 Quick Execution Steps
+
+```bash
+# 1. Generate SSH key for EC2 access
+make generate-ssh-key
+
+# 2. Deploy core infrastructure (VPC, RDS, EC2, S3)
+make infra-apply
+
+# 3. Start SSH tunnel for database access (keep this terminal open)
+make ssh-tunnel
+
+# 4. Open a new terminal and setup MLflow & Prefect services on EC2
+make prefect-setup
+
+# 5. Deploy application services (Lambda, Kinesis, ECR)
+make app-apply
+
+# 6. Deploy Lambda function with the trained model
+# Note: Get the RUN_ID from Prefect logs or use the example below
+make lambda-deploy RUN_ID=5632a760d95b413a816bdc6e87f7f313
+
+# 7. Test the model by sending a record to Kinesis stream
+make kinesis-put-record
+```
+
+### 📊 View Results
+
+After executing the steps above:
+
+1. **Check Lambda Logs**: Navigate to AWS Console > CloudWatch > Log groups
+2. **Find Log Group**: Look for `/aws/lambda/lambda_function_rental_prediction_mlops-zoomcamp`
+3. **View Predictions**: You should see rental price predictions in the logs
+
+### 🔍 Expected Output
+
+The Lambda function will process the test data and output something like:
+```
+Prediction event: {
+  'model': 'rental_price_prediction_model',
+  'version': '1',
+  'prediction': {'price': 1850.75}
+}
+```
+
+### 🎛️ Access Monitoring Dashboards
+
+- **Grafana**: `http://<EC2-PUBLIC-IP>:3000` (admin/admin)
+- **Prefect UI**: `http://<EC2-PUBLIC-IP>:4200`
+- **MLflow UI**: `http://<EC2-PUBLIC-IP>:5000`
+
+### ⚠️ Important Notes
+
+- **RUN_ID**: The `RUN_ID` in step 6 should be obtained from your Prefect run logs. The example `5632a760d95b413a816bdc6e87f7f313` is just for demonstration.
+- **SSH Tunnel**: Keep the SSH tunnel terminal open while using the services.
+- **Costs**: Running this infrastructure will incur AWS charges. Remember to destroy resources when done.
+- **Cleanup**: Use `make app-destroy` and `make infra-destroy` to clean up resources.
 
 ## 🛠️ Available Commands
 

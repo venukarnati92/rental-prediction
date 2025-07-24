@@ -1,10 +1,12 @@
 import os
 
-from . import model
+import model
 
-PREDICTIONS_STREAM_NAME = os.getenv('PREDICTIONS_STREAM_NAME', 'output_stream-mlops-zoomcamp')
-RUN_ID = os.getenv('RUN_ID')
-TEST_RUN = os.getenv('TEST_RUN', 'False') == 'True'
+PREDICTIONS_STREAM_NAME = os.getenv(
+    "PREDICTIONS_STREAM_NAME", "output_stream-mlops-zoomcamp"
+)
+RUN_ID = os.getenv("RUN_ID", "")
+TEST_RUN = os.getenv("TEST_RUN", "False") == "True"
 
 
 model_service = model.init(

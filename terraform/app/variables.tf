@@ -31,13 +31,13 @@ variable "ecr_repo_name" {
 variable "lambda_function_local_path" {
   type = string
   description = "Local path to lambda function / python file"
-  default = "../../src/webservice/lambda_function.py"
+  default = "../../src/lambda_service/lambda_function.py"
 }
 
 variable "docker_image_local_path" {
   type = string
   description = "Local path to Dockerfile"
-  default = "../../src/webservice/Dockerfile"
+  default = "../../src/lambda_service/Dockerfile"
 }
 
 variable "ecr_image_tag" {

@@ -28,6 +28,8 @@ help:
 	@echo "  prefect-setup         - Run Prefect setup script with EC2 DNS from infra output"
 	@echo "  generate-ssh-key      - Generate RSA SSH key pair for EC2"
 	@echo "  prefect-server        - Start SSH tunnel for PostgreSQL to EC2 instance"
+	@echo "  lambda-deploy         - Deploy Lambda function (usage: make lambda-deploy MODEL_LOCATION=<s3_path>)"
+	@echo "  kinesis-put-record    - Put a test record into Kinesis stream"
 	@echo ""
 	@echo "Testing:"
 	@echo "  test                  - Run all unit tests"
@@ -38,6 +40,28 @@ help:
 	@echo "  test-integration-real - Run real data integration tests"
 	@echo "  test-integration-specific - Run specific integration test file"
 	@echo "  test-all              - Run all tests (unit + integration)"
+
+# ==============================================================================
+# SETUP TARGETS
+# ==============================================================================
+.PHONY: create-tfstate-bucket
+create-tfstate-bucket:
+	@echo "--> Creating S3 bucket for Terraform state..."
+	@bash terraform/create_tfstate_bucket.sh
+
+.PHONY: lambda-deploy
+lambda-deploy:
+	@if [ -z "$(MODEL_LOCATION)" ]; then \
+		echo "Error: Please specify a MODEL_LOCATION. Usage: make lambda-deploy MODEL_LOCATION=<s3_path>"; \
+		exit 1; \
+	fi
+	@echo "--> Deploying Lambda function "
+	@bash src/lambda_service/scripts/deploy.sh $(MODEL_LOCATION)
+
+.PHONY: kinesis-put-record
+kinesis-put-record:
+	@echo "--> Putting test record into Kinesis stream..."
+	@bash src/lambda_service/scripts/kinesis.sh
 
 # ==============================================================================
 # TESTING TARGETS
@@ -91,7 +115,7 @@ test-all:
 	@PYTHONPATH=src pytest tests/ -v
 
 .PHONY: prefect-setup
-prefect-setup: ssh-tunnel
+prefect-setup:
 	@echo "--> Getting EC2 public IP from Terraform output..."
 	@host_name=$$(terraform -chdir=terraform/infra output -raw ec2_dns_name) && \
 	echo "--> Running Prefect setup script with host: $$host_name" && \
