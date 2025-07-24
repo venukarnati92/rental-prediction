@@ -61,7 +61,7 @@ rental-prediction/
 - **Python 3.8+**
 - **AWS CLI** configured with appropriate permissions
 - **Terraform** installed
-- **Docker** for local development
+- **Docker** for app deployment
 - **Git** for version control
 
 ### 🛠️ Installation & Setup
@@ -90,7 +90,7 @@ pip install -r requirements-dev.txt
 
 #### 4. **Configure AWS**
 
-This project uses the acg AWS profile for authentication and deployment. You need to configure your AWS credentials and profile before running the infrastructure deployment.
+This project uses the `acg` AWS profile for authentication and deployment. You need to configure your AWS credentials and profile before running the infrastructure deployment.
 
 Create or update your AWS credentials file at `~/.aws/credentials`:
 
@@ -157,16 +157,21 @@ ssh -i my-key.pem ec2-user@<EC2-PUBLIC-IP>
 
 ### 🏗️ Prefect Server Orchestration
 
-#### 1. **Setup MLflow & Prefect**
+#### 1. **Setup SSH Tunnel**
+```bash
+make ssh-tunnel
+```
+
+#### 2. **Setup MLflow & Prefect**
 ```bash
 # Setup services on EC2
 make prefect-setup
 ```
 
-#### 2. **Execute Deployment**
+#### 3. **Execute Deployment**
 ```
 Naviate to browser http://<<EC2-PUBLIC-IP>>:4200/deployments and execute the deployment. 
-This will build the model, upload model to S3 using mlflow and Publish evidently metrics
+Prefect orchestartion will build the model, mlflow is used for model tracking and uploading the model to S3 and publish evidently metrics
 ```
 
 ### Deploy Application Service
@@ -251,7 +256,7 @@ Prediction event: {
 #### **Core Infrastructure** (`terraform/infra/`)
 - **VPC & Networking**: Custom VPC with public/private subnets across multiple AZs
 - **Security Groups**: Fine-grained access control for EC2, RDS, and Lambda services
-- **S3 Bucket**: Artifact storage for models, data, and MLflow artifacts
+- **S3 Bucket**: Artifact storage for models, terraform state files.
 - **RDS PostgreSQL**: Managed database for MLflow metadata and experiment tracking
 - **EC2 Instance**: Multi-service host with automated deployment via user script
   - **MLflow Server** (Port 5000): Experiment tracking and model registry
@@ -346,7 +351,7 @@ The ML model is **containerized** using **Docker** and deployed to **AWS ECR** f
 
 ## 📊 Comprehensive Model Monitoring
 
-**Real-time monitoring** with **conditional workflows** and **automated alerts** when metrics thresholds are violated.
+**Real-time monitoring** on model metrics .
 
 ### 🔍 Monitoring Stack
 
@@ -367,7 +372,7 @@ The ML model is **containerized** using **Docker** and deployed to **AWS ECR** f
 - **Historical Data**: Long-term performance tracking
 - **Query Capabilities**: Complex metric analysis
 
-### 🚨 Conditional Workflows
+### 🚨 Conditional Workflows (TO BE IMPLEMENTED)
 
 When monitoring thresholds are violated, the system triggers:
 

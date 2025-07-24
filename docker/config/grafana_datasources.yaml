@@ -14,4 +14,4 @@ datasources:
       password: 'example'
     jsonData:
       sslmode: 'disable'
-      database: test
+      database: rentalprediction
