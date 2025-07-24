@@ -88,7 +88,9 @@ pip install -r requirements-dev.txt
 ./scripts/setup-hooks.sh
 ```
 
-#### 4. **🔧Configure AWS**
+#### 4. **Configure AWS**
+
+This project uses the acg AWS profile for authentication and deployment. You need to configure your AWS credentials and profile before running the infrastructure deployment.
 
 Create or update your AWS credentials file at `~/.aws/credentials`:
 
@@ -106,10 +108,6 @@ region = us-east-1
 output = json
 ```
 
-The project automatically uses the `acg` profile for:
-- **Terraform deployments** (infrastructure and application)
-- **AWS CLI operations**
-
 **Environment Variables (Alternative)**
 
 If you prefer using environment variables instead of the profile, you can set:
@@ -121,7 +119,7 @@ AWS_SECRET_ACCESS_KEY=your_secret_key
 AWS_DEFAULT_REGION=us-east-1
 ```
 
-**Note**: The `acg` profile takes precedence over environment variables.
+**Note**: The project automatically uses the `acg` profile. The `acg` profile takes precedence over environment variables.
 
 ### 🏗️ Infrastructure Deployment
 
@@ -217,51 +215,6 @@ Prediction event: {
 }
 ```
 
-## 🔧 Configuration
-
-### **AWS Profile Configuration**
-
-This project uses the **`acg` AWS profile** for authentication and deployment. You need to configure your AWS credentials and profile before running the infrastructure deployment.
-
-#### **1. AWS Credentials Setup**
-
-Create or update your AWS credentials file at `~/.aws/credentials`:
-
-```ini
-[acg]
-aws_access_key_id     = YOUR_ACCESS_KEY_ID
-aws_secret_access_key = YOUR_SECRET_ACCESS_KEY
-```
-
-#### **2. AWS Config Setup**
-
-Create or update your AWS config file at `~/.aws/config`:
-
-```ini
-[profile acg]
-region = us-east-1
-output = json
-```
-
-#### **3. Profile Usage**
-
-The project automatically uses the `acg` profile for:
-- **Terraform deployments** (infrastructure and application)
-- **AWS CLI operations**
-
-#### **4. Environment Variables (Alternative)**
-
-If you prefer using environment variables instead of the profile, you can set:
-
-```bash
-# AWS Configuration
-AWS_ACCESS_KEY_ID=your_access_key
-AWS_SECRET_ACCESS_KEY=your_secret_key
-AWS_DEFAULT_REGION=us-east-1
-```
-
-**Note**: The `acg` profile takes precedence over environment variables.
-
 ### 📊 Infrastructure Architecture
 
 ```
@@ -301,40 +254,6 @@ AWS_DEFAULT_REGION=us-east-1
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### 🚀 Quick Start Guide
-
-```bash
-# 1. Generate SSH key for EC2 access
-make generate-ssh-key
-
-# 2. Deploy core infrastructure (VPC, RDS, EC2, S3)
-make infra-apply
-
-# 3. Start SSH tunnel for database access (keep this terminal open)
-make ssh-tunnel
-
-# 4. Open a new terminal and setup MLflow & Prefect services on EC2
-make prefect-setup
-
-All the services can be found here https://github.com/venukarnati92/rental-prediction#-access-services
-
-# 5.Naviate to browser http://<<EC2-PUBLIC-IP>>:4200/deployments and execute the deployment 
-# this will build the model and upload model to S3 and Publish evidently metrics
-
-# 6. Deploy application services (Lambda, Kinesis, ECR)
-make app-apply
-
-# 6. Deploy Lambda function with the trained model
-# Note: Get the model location from s3 example s3://<bucket_name>/1/models/m-d07fd6cf5ed6418bbbfc3668f5c95042/artifacts/
-make lambda-deploy MODEL_LOCATION=<s3_path>
-
-# 7. Test the model by sending a record to Kinesis stream
-make kinesis-put-record
-You should see the entries in logs as shown here
-
-```
-
-
 ### 🏢 Infrastructure Components
 
 #### **Core Infrastructure** (`terraform/infra/`)
@@ -355,28 +274,9 @@ You should see the entries in logs as shown here
 - **Kinesis Streams**: Real-time data streaming for input/output processing
 - **IAM Roles & Policies**: Secure access management for all services
 
-### 🚀 Infrastructure Deployment
-
-**Prerequisites**: Ensure your AWS `acg` profile is configured as described in the [Configuration](#-configuration) section.
+### 🚀 Infrastructure Teardown
 
 ```bash
-# Initialize Terraform state (first time only)
-make create-tfstate-bucket
-
-# Generate SSH key for EC2 access
-make generate-ssh-key
-
-# Deploy core infrastructure (uses acg profile)
-make infra-apply
-
-# Deploy application services (uses acg profile)
-make app-apply
-
-# View infrastructure status
-make infra-plan
-make app-plan
-
-# Clean up (destroy in reverse order)
 make app-destroy
 make infra-destroy
 ```
