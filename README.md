@@ -54,6 +54,169 @@ rental-prediction/
 
 This project is built entirely on **AWS Cloud** using **Terraform** for Infrastructure as Code (IaC) to ensure reproducible, version-controlled infrastructure deployment.
 
+## 🚀 Quick Start Guide
+
+### 📋 Prerequisites
+
+- **Python 3.8+**
+- **AWS CLI** configured with appropriate permissions
+- **Terraform** installed
+- **Docker** for local development
+- **Git** for version control
+
+### 🛠️ Installation & Setup
+
+#### 1. **Clone Repository**
+```bash
+git clone https://github.com/venukarnati92/rental-prediction.git
+cd rental-prediction
+```
+
+#### 2. **Install Dependencies**
+```bash
+#virtual env setup is recommended
+# Production dependencies
+pip install -r requirements.txt
+
+# Development dependencies
+pip install -r requirements-dev.txt
+```
+
+#### 3. **Setup Pre-commit Hooks**
+```bash
+# Automated code quality checks
+./scripts/setup-hooks.sh
+```
+
+#### 4. **🔧Configure AWS**
+
+Create or update your AWS credentials file at `~/.aws/credentials`:
+
+```ini
+[acg]
+aws_access_key_id     = YOUR_ACCESS_KEY_ID
+aws_secret_access_key = YOUR_SECRET_ACCESS_KEY
+```
+
+Create or update your AWS config file at `~/.aws/config`:
+
+```ini
+[profile acg]
+region = us-east-1
+output = json
+```
+
+The project automatically uses the `acg` profile for:
+- **Terraform deployments** (infrastructure and application)
+- **AWS CLI operations**
+
+**Environment Variables (Alternative)**
+
+If you prefer using environment variables instead of the profile, you can set:
+
+```bash
+# AWS Configuration
+AWS_ACCESS_KEY_ID=your_access_key
+AWS_SECRET_ACCESS_KEY=your_secret_key
+AWS_DEFAULT_REGION=us-east-1
+```
+
+**Note**: The `acg` profile takes precedence over environment variables.
+
+### 🏗️ Infrastructure Deployment
+
+#### 1. **Generate SSH key for EC2 access**
+```bash
+#Generate SSH key for EC2 access
+make generate-ssh-key
+```
+
+#### 2. **Create Terraform state bucket(first time only)**
+```bash
+# Create Terraform state bucket 
+make create-tfstate-bucket
+```
+
+#### 3. **Deploy Core Infrastructure**
+```bash
+# Deploy core infrastructure (VPC, RDS, EC2, S3)
+make infra-apply
+```
+
+### 📊 These are the service infrastructure deploy on EC2
+
+- **MLflow UI**: `http://<EC2-PUBLIC-IP>:5000`
+- **Prefect UI**: `http://<EC2-PUBLIC-IP>:4200`
+- **Grafana**: `http://<EC2-PUBLIC-IP>:3000` (admin/admin)
+- **Adminer**: `http://<EC2-PUBLIC-IP>:8080` (database management)
+- **PostgreSQL**: `<EC2-PUBLIC-IP>:5432` (local database)
+
+
+#### 4. **Access EC2 instance**
+```bash
+ssh -i my-key.pem ec2-user@<EC2-PUBLIC-IP>
+```
+
+### 🏗️ Prefect Server Orchestration
+
+#### 1. **Setup MLflow & Prefect**
+```bash
+# Setup services on EC2
+make prefect-setup
+```
+
+#### 2. **Execute Deployment**
+```
+Naviate to browser http://<<EC2-PUBLIC-IP>>:4200/deployments and execute the deployment. 
+This will build the model, upload model to S3 using mlflow and Publish evidently metrics
+```
+
+### 📊 Prefect Capabilities
+
+- **Task Retries**: Automatic retry with exponential backoff
+- **Monitoring**: Real-time workflow monitoring and alerting
+- **Scheduling**: Automated pipeline scheduling and triggering
+- **Error Handling**: Robust error handling and recovery
+- **Artifacts**: Rich artifact storage and visualization
+
+### Deploy Application Service
+
+#### 1. **Deploy App Infrastructure**
+```bash
+# Deploy Lambda, Kinesis, ECR
+make app-apply
+```
+
+#### 2. **AWS CLI to update Lambda function**
+```bash
+# Get the model location from s3 example s3://<bucket_name>/1/models/m-d07fd6cf5ed6418bbbfc3668f5c95042/artifacts/
+make lambda-deploy MODEL_LOCATION=<s3_path>
+```
+
+#### 3. **Add records to Kinesis Stream**
+```bash
+make kinesis-put-record
+```
+
+### 📊 View Results
+
+After executing the steps above:
+
+1. **Check Lambda Logs**: Navigate to AWS Console > CloudWatch > Log groups
+2. **Find Log Group**: Look for `/aws/lambda/lambda_function_rental_prediction_mlops-zoomcamp`
+3. **View Predictions**: You should see rental price predictions in the logs
+
+### 🔍 Expected Output
+
+The Lambda function will process the test data and output something like:
+```
+Prediction event: {
+  'model': 'rental_price_prediction_model',
+  'version': '1',
+  'prediction': {'price': 1850.75}
+}
+```
+
 ## 🔧 Configuration
 
 ### **AWS Profile Configuration**
@@ -98,6 +261,78 @@ AWS_DEFAULT_REGION=us-east-1
 ```
 
 **Note**: The `acg` profile takes precedence over environment variables.
+
+### 📊 Infrastructure Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        AWS Cloud                            │
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│  │   VPC       │  │   Security  │  │   S3        │         │
+│  │   (Custom)  │  │   Groups    │  │   Bucket    │         │
+│  └─────────────┘  └─────────────┘  └─────────────┘         │
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────────────────────────────────────────────────────┐ │
+│  │                    EC2 Instance                         │ │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐     │ │
+│  │  │   MLflow    │  │   Prefect   │  │   Grafana   │     │ │
+│  │  │   Server    │  │   Server    │  │   (Port     │     │ │
+│  │  │   (Port     │  │   (Port     │  │   3000)     │     │ │
+│  │  │   5000)     │  │   4200)     │  │             │     │ │
+│  │  └─────────────┘  └─────────────┘  └─────────────┘     │ │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐     │ │
+│  │  │ PostgreSQL  │  │   Adminer   │  │   Docker    │     │ │
+│  │  │   (Port     │  │   (Port     │  │   Compose   │     │ │
+│  │  │   5432)     │  │   8080)     │  │   Stack     │     │ │
+│  │  └─────────────┘  └─────────────┘  └─────────────┘     │ │
+│  └─────────────────────────────────────────────────────────┘ │
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│  │   RDS       │  │   ECR       │  │   Lambda    │         │
+│  │   PostgreSQL│  │   Registry  │  │   Functions │         │
+│  │   (Backend) │  │             │  │             │         │
+│  └─────────────┘  └─────────────┘  └─────────────┘         │
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│  │   Kinesis   │  │   CloudWatch│  │   IAM       │         │
+│  │   Streams   │  │   Logs      │  │   Roles     │         │
+│  └─────────────┘  └─────────────┘  └─────────────┘         │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 🚀 Quick Start Guide
+
+```bash
+# 1. Generate SSH key for EC2 access
+make generate-ssh-key
+
+# 2. Deploy core infrastructure (VPC, RDS, EC2, S3)
+make infra-apply
+
+# 3. Start SSH tunnel for database access (keep this terminal open)
+make ssh-tunnel
+
+# 4. Open a new terminal and setup MLflow & Prefect services on EC2
+make prefect-setup
+
+All the services can be found here https://github.com/venukarnati92/rental-prediction#-access-services
+
+# 5.Naviate to browser http://<<EC2-PUBLIC-IP>>:4200/deployments and execute the deployment 
+# this will build the model and upload model to S3 and Publish evidently metrics
+
+# 6. Deploy application services (Lambda, Kinesis, ECR)
+make app-apply
+
+# 6. Deploy Lambda function with the trained model
+# Note: Get the model location from s3 example s3://<bucket_name>/1/models/m-d07fd6cf5ed6418bbbfc3668f5c95042/artifacts/
+make lambda-deploy MODEL_LOCATION=<s3_path>
+
+# 7. Test the model by sending a record to Kinesis stream
+make kinesis-put-record
+You should see the entries in logs as shown here
+
+```
 
 
 ### 🏢 Infrastructure Components
@@ -144,45 +379,6 @@ make app-plan
 # Clean up (destroy in reverse order)
 make app-destroy
 make infra-destroy
-```
-
-### 📊 Infrastructure Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        AWS Cloud                            │
-├─────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
-│  │   VPC       │  │   Security  │  │   S3        │         │
-│  │   (Custom)  │  │   Groups    │  │   Bucket    │         │
-│  └─────────────┘  └─────────────┘  └─────────────┘         │
-├─────────────────────────────────────────────────────────────┤
-│  ┌─────────────────────────────────────────────────────────┐ │
-│  │                    EC2 Instance                         │ │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐     │ │
-│  │  │   MLflow    │  │   Prefect   │  │   Grafana   │     │ │
-│  │  │   Server    │  │   Server    │  │   (Port     │     │ │
-│  │  │   (Port     │  │   (Port     │  │   3000)     │     │ │
-│  │  │   5000)     │  │   4200)     │  │             │     │ │
-│  │  └─────────────┘  └─────────────┘  └─────────────┘     │ │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐     │ │
-│  │  │ PostgreSQL  │  │   Adminer   │  │   Docker    │     │ │
-│  │  │   (Port     │  │   (Port     │  │   Compose   │     │ │
-│  │  │   5432)     │  │   8080)     │  │   Stack     │     │ │
-│  │  └─────────────┘  └─────────────┘  └─────────────┘     │ │
-│  └─────────────────────────────────────────────────────────┘ │
-├─────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
-│  │   RDS       │  │   ECR       │  │   Lambda    │         │
-│  │   PostgreSQL│  │   Registry  │  │   Functions │         │
-│  │   (Backend) │  │             │  │             │         │
-│  └─────────────┘  └─────────────┘  └─────────────┘         │
-├─────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
-│  │   Kinesis   │  │   CloudWatch│  │   IAM       │         │
-│  │   Streams   │  │   Logs      │  │   Roles     │         │
-│  └─────────────┘  └─────────────┘  └─────────────┘         │
-└─────────────────────────────────────────────────────────────┘
 ```
 
 ## 🔬 MLflow Experiment Tracking & Model Registry
@@ -379,75 +575,6 @@ docker-compose up -d
 - Adminer (Port 8080): Database management interface
 ```
 
-## 🚀 Quick Start Guide
-
-### 📋 Prerequisites
-
-- **Python 3.8+**
-- **AWS CLI** configured with appropriate permissions
-- **Terraform** installed
-- **Docker** for local development
-- **Git** for version control
-
-### 🛠️ Installation & Setup
-
-#### 1. **Clone Repository**
-```bash
-git clone https://github.com/venukarnati92/rental-prediction.git
-cd rental-prediction
-```
-
-#### 2. **Install Dependencies**
-```bash
-#virtual env setup is recommended
-# Production dependencies
-pip install -r requirements.txt
-
-# Development dependencies
-pip install -r requirements-dev.txt
-```
-
-#### 3. **Setup Pre-commit Hooks**
-```bash
-# Automated code quality checks
-./scripts/setup-hooks.sh
-```
-
-#### 4. **Configure AWS**
-```bash
-# Configure AWS credentials
-aws configure
-
-# Verify access
-aws sts get-caller-identity
-```
-
-### 🏗️ Infrastructure Deployment
-
-#### 1. **Deploy Core Infrastructure**
-```bash
-# Create Terraform state bucket (first time only)
-make create-tfstate-bucket
-
-# Deploy VPC, RDS, EC2, S3
-make infra-apply
-```
-
-#### 2. **Deploy Application Services**
-```bash
-# Deploy Lambda, Kinesis, ECR
-make app-apply
-```
-
-#### 3. **Setup MLflow & Prefect**
-```bash
-# Setup services on EC2
-make prefect-setup
-
-# Generate SSH key for access
-make generate-ssh-key
-```
-
 ### 🧪 Testing
 
 #### **Unit Tests**
@@ -494,32 +621,6 @@ If you want to **quickly evaluate the rental prediction model** without going th
 - **AWS CLI** configured with `acg` profile (see [Configuration](#-configuration))
 - **Docker** running on your local machine
 - **Terraform** installed
-
-### 🚀 Quick Execution Steps
-
-```bash
-# 1. Generate SSH key for EC2 access
-make generate-ssh-key
-
-# 2. Deploy core infrastructure (VPC, RDS, EC2, S3)
-make infra-apply
-
-# 3. Start SSH tunnel for database access (keep this terminal open)
-make ssh-tunnel
-
-# 4. Open a new terminal and setup MLflow & Prefect services on EC2
-make prefect-setup
-
-# 5. Deploy application services (Lambda, Kinesis, ECR)
-make app-apply
-
-# 6. Deploy Lambda function with the trained model
-# Note: Get the RUN_ID from Prefect logs or use the example below
-make lambda-deploy RUN_ID=5632a760d95b413a816bdc6e87f7f313
-
-# 7. Test the model by sending a record to Kinesis stream
-make kinesis-put-record
-```
 
 ### 📊 View Results
 
@@ -599,9 +700,6 @@ make all-destroy        # Destroy everything
 - Use conventional commit messages
 - Integration tests for new features
 
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
