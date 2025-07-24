@@ -11,6 +11,10 @@ The rental market is highly dynamic with prices varying significantly based on l
 - **Scalable Infrastructure**: Deploying ML models in a cloud-native, serverless architecture
 - **Reproducible ML**: Tracking experiments, model versions, and deployment history
 
+## 🏗️ AWS Cloud Infrastructure & IaC
+
+This project is built entirely on **AWS Cloud** using **Terraform** for Infrastructure as Code (IaC) to ensure reproducible, version-controlled infrastructure deployment.
+
 ## 🏗️ Project Structure
 
 ```
@@ -49,10 +53,6 @@ rental-prediction/
 ├── requirements-dev.txt   # Development dependencies
 └── Makefile              # Build and deployment commands
 ```
-
-## 🏗️ AWS Cloud Infrastructure & IaC
-
-This project is built entirely on **AWS Cloud** using **Terraform** for Infrastructure as Code (IaC) to ensure reproducible, version-controlled infrastructure deployment.
 
 ## 🚀 Quick Start Guide
 
@@ -281,6 +281,25 @@ make app-destroy
 make infra-destroy
 ```
 
+## ⚡ Prefect Server Orchestration
+
+**Prefect** provides robust workflow orchestration for the ML pipeline with:
+
+### 🎯 Prefect Services on EC2
+
+- **Prefect Server**: Workflow orchestration and scheduling
+- **Prefect Agent**: Task execution and monitoring
+- **PostgreSQL Backend**: Workflow state and metadata storage
+
+
+### 📊 Prefect Capabilities
+
+- **Task Retries**: Automatic retry with exponential backoff
+- **Monitoring**: Real-time workflow monitoring and alerting
+- **Scheduling**: Automated pipeline scheduling and triggering
+- **Error Handling**: Robust error handling and recovery
+- **Artifacts**: Rich artifact storage and visualization
+
 ## 🔬 MLflow Experiment Tracking & Model Registry
 
 **MLflow** is used for comprehensive experiment tracking and model registry, hosted on EC2 with S3 backend storage.
@@ -327,55 +346,9 @@ with mlflow.start_run():
 - **Artifact Storage**: Store model artifacts in S3 with versioning
 - **Performance Tracking**: Monitor model performance over time
 
-#### **Service Ports & Access**
-```bash
-# MLflow Services
-MLflow UI: http://<EC2-PUBLIC-IP>:5000
-Prefect UI: http://<EC2-PUBLIC-IP>:4200
-
-# Monitoring Services
-Grafana: http://<EC2-PUBLIC-IP>:3000 (admin/admin)
-Adminer: http://<EC2-PUBLIC-IP>:8080 (database management)
-PostgreSQL: <EC2-PUBLIC-IP>:5432 (local database)
-```
-
-#### **Setup Commands**
-```bash
-Open a new Terminal and run the ssh-tunnel # SSH tunnel for database access
-make ssh-tunnel
-
-# Setup all services on EC2
-make prefect-setup
-
-Naviate to browser http://<<EC2-PUBLIC-IP>>:4200/deployments and execute the deployment this will build the model and will upload model to S3 and Publish evidently metrics
-
-# Access EC2 instance
-ssh -i my-key.pem ec2-user@<EC2-PUBLIC-IP>
-```
-
-## ⚡ Prefect Server Orchestration
-
-**Prefect** provides robust workflow orchestration for the ML pipeline with:
-
-### 🎯 Prefect Services on EC2
-
-- **Prefect Server**: Workflow orchestration and scheduling
-- **Prefect Agent**: Task execution and monitoring
-- **PostgreSQL Backend**: Workflow state and metadata storage
-
-
-### 📊 Prefect Capabilities
-
-- **Task Retries**: Automatic retry with exponential backoff
-- **Monitoring**: Real-time workflow monitoring and alerting
-- **Scheduling**: Automated pipeline scheduling and triggering
-- **Error Handling**: Robust error handling and recovery
-- **Artifacts**: Rich artifact storage and visualization
-
 ## 🐳 Containerized Model Deployment
 
 The ML model is **containerized** using **Docker** and deployed to **AWS ECR** for scalable, reproducible deployments.
-
 
 ### 🚀 Deployment Pipeline
 
@@ -385,25 +358,6 @@ The ML model is **containerized** using **Docker** and deployed to **AWS ECR** f
 4. **Lambda Deployment**: Serverless function updated with new model
 5. **Traffic Routing**: Kinesis streams route traffic to new model
 
-### 🔧 Deployment Commands
-
-```bash
-# Build and push container you need to have a docker running on local machine I am using docker desktop on my local machine
-make app-apply
-
-Get the model location from s3 example
-s3://mlops-zoomcamp-bucket-2025/1/models/m-d07fd6cf5ed6418bbbfc3668f5c95042/artifacts/
-
-# Call aws cli to update Lambda function
-make lambda-deploy RUN_ID=<run_id>
-
-# Add record to kinesis stream
-make kinesis-put-record
-
-Navigate to AWS Console > CloudWatch > Log groups
-
-You will see a log group called /aws/lambda/lambda_function_rental_prediction_mlops-zoomcamp you should see rental prediction
-```
 
 ## 📊 Comprehensive Model Monitoring
 
@@ -449,32 +403,6 @@ When monitoring thresholds are violated, the system triggers:
 - Model Performance: RMSE, MAE tracking over time
 ```
 
-### 🎛️ Monitoring Setup
-
-#### **Production (EC2)**
-The monitoring stack is automatically deployed on EC2 via Terraform:
-
-```bash
-# Services are automatically started on EC2 boot
-# Access via EC2 public IP:
-# Grafana: http://<EC2-PUBLIC-IP>:3000 (admin/admin)
-# Adminer: http://<EC2-PUBLIC-IP>:8080 (database management)
-# PostgreSQL: <EC2-PUBLIC-IP>:5432
-
-# Manual restart if needed (SSH to EC2)
-cd /home/ec2-user/app/docker
-docker-compose down
-docker-compose up -d
-```
-
-#### **Docker Compose Services**
-```yaml
-# Monitoring stack includes:
-- Grafana (Port 3000): Visualization dashboards
-- PostgreSQL (Port 5432): Local metrics database
-- Adminer (Port 8080): Database management interface
-```
-
 ### 🧪 Testing
 
 #### **Unit Tests**
@@ -491,98 +419,15 @@ make test-integration-real  # Run real data integration tests
 make test-all              # Run all tests
 ```
 
-#### 3. **Test Predictions**
-```bash
-# Test Lambda function
-aws lambda invoke --function-name rental-prediction-lambda \
-  --payload '{"features": {"bedrooms": 2, "bathrooms": 2, "square_feet": 1000, "cityname": "New York", "state": "NY"}}' \
-  response.json
-```
-
-### 📊 Access Services
-
-#### **Production (EC2)**
-- **MLflow UI**: `http://<EC2-PUBLIC-IP>:5000`
-- **Prefect UI**: `http://<EC2-PUBLIC-IP>:4200`
-- **Grafana**: `http://<EC2-PUBLIC-IP>:3000` (admin/admin)
-- **Adminer**: `http://<EC2-PUBLIC-IP>:8080` (database management)
-- **PostgreSQL**: `<EC2-PUBLIC-IP>:5432` (local database)
-
-#### **Local Development**
-- **Grafana**: `http://localhost:3000` (admin/admin)
-- **Adminer**: `http://localhost:8080` (database management)
-- **PostgreSQL**: `localhost:5432` (local database)
-
-## ⚡ Quick Model Evaluation
-
-If you want to **quickly evaluate the rental prediction model** without going through the full setup, follow these steps:
-
-### 🎯 Prerequisites
-- **AWS CLI** configured with `acg` profile (see [Configuration](#-configuration))
-- **Docker** running on your local machine
-- **Terraform** installed
-
-### 📊 View Results
-
-After executing the steps above:
-
-1. **Check Lambda Logs**: Navigate to AWS Console > CloudWatch > Log groups
-2. **Find Log Group**: Look for `/aws/lambda/lambda_function_rental_prediction_mlops-zoomcamp`
-3. **View Predictions**: You should see rental price predictions in the logs
-
-### 🔍 Expected Output
-
-The Lambda function will process the test data and output something like:
-```
-Prediction event: {
-  'model': 'rental_price_prediction_model',
-  'version': '1',
-  'prediction': {'price': 1850.75}
-}
-```
-
-### 🎛️ Access Monitoring Dashboards
-
-- **Grafana**: `http://<EC2-PUBLIC-IP>:3000` (admin/admin)
-- **Prefect UI**: `http://<EC2-PUBLIC-IP>:4200`
-- **MLflow UI**: `http://<EC2-PUBLIC-IP>:5000`
-
 ### ⚠️ Important Notes
 
-- **RUN_ID**: The `RUN_ID` in step 6 should be obtained from your Prefect run logs. The example `5632a760d95b413a816bdc6e87f7f313` is just for demonstration.
-- **SSH Tunnel**: Keep the SSH tunnel terminal open while using the services.
 - **Costs**: Running this infrastructure will incur AWS charges. Remember to destroy resources when done.
 - **Cleanup**: Use `make app-destroy` and `make infra-destroy` to clean up resources.
 
 ## 🛠️ Available Commands
 
-### **Testing Commands**
 ```bash
-make test                 # Run all unit tests
-make test-integration     # Run all integration tests (uses acg profile)
-make test-integration-real # Run real data integration tests (uses acg profile)
-make test-all            # Run all tests
-```
-
-**Note**: Integration tests that interact with AWS services require the `acg` profile to be configured.
-
-### **Infrastructure Commands**
-```bash
-make infra-plan          # Plan infrastructure changes
-make infra-apply         # Deploy infrastructure
-make infra-destroy       # Destroy infrastructure
-make app-plan           # Plan application changes
-make app-apply          # Deploy application
-make app-destroy        # Destroy application
-```
-
-### **Development Commands**
-```bash
-make prefect-setup       # Setup Prefect on EC2
-make generate-ssh-key    # Generate SSH key for EC2
-make ssh-tunnel          # Start SSH tunnel
-make all-init           # Initialize everything
-make all-destroy        # Destroy everything
+make help
 ```
 
 ## 🤝 Contributing
@@ -599,7 +444,6 @@ make all-destroy        # Destroy everything
 - Follow PEP 8 style guidelines
 - Use conventional commit messages
 - Integration tests for new features
-
 
 ---
 
