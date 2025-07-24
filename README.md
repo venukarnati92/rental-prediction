@@ -424,6 +424,78 @@ make test-all              # Run all tests
 - **Costs**: Running this infrastructure will incur AWS charges. Remember to destroy resources when done.
 - **Cleanup**: Use `make app-destroy` and `make infra-destroy` to clean up resources.
 
+## 🔧 Pre-commit Hooks & Code Quality
+
+This project uses **pre-commit hooks** to ensure code quality and consistency. When you commit changes, the following automated checks are performed:
+
+### 🎯 **Automated Checks on Commit**
+
+```bash
+# When you run: git commit -m "your message"
+# The following checks are automatically executed:
+```
+
+#### **1. Code Formatting**
+- **Black**: Automatic Python code formatting (line length: 88 characters)
+- **isort**: Import statement sorting and organization
+
+#### **2. Code Quality**
+- **flake8**: Python linting and style checking
+- **mypy**: Static type checking for Python code
+- **Bandit**: Security vulnerability scanning
+
+#### **3. Testing**
+- **Unit Tests**: Automatic execution of all unit tests
+- **Test Coverage**: Ensures code coverage requirements are met
+
+#### **4. Commit Standards**
+- **Commit Message Format**: Validates conventional commit message format
+
+### 🚀 **What Happens During Commit**
+
+When you commit, you'll see output like this:
+```bash
+$ git commit -m "feat: add new feature"
+black....................................................................Passed
+isort....................................................................Passed
+flake8...................................................................Passed
+mypy.....................................................................Passed
+bandit...................................................................Passed
+Unit Tests...............................................................Passed
+Commit Message Format....................................................Passed
+[main abc1234] feat: add new feature
+ 1 file changed, 10 insertions(+)
+```
+
+### ⚠️ **If Checks Fail**
+
+If any pre-commit hook fails:
+- **The commit is blocked** until issues are resolved
+- **Auto-fixes are applied** where possible (e.g., Black formatting)
+- **Manual fixes required** for issues that can't be auto-resolved
+
+### 🛠️ **Manual Hook Execution**
+
+You can run pre-commit hooks manually:
+```bash
+# Run all hooks on all files
+pre-commit run --all-files
+
+# Run specific hook
+pre-commit run black
+pre-commit run flake8
+pre-commit run mypy
+```
+
+### 📋 **Pre-commit Configuration**
+
+The hooks are configured in `.pre-commit-config.yaml`:
+- **Black**: 88 character line length
+- **isort**: Black-compatible import sorting
+- **flake8**: Extended ignore for E203 (Black compatibility)
+- **Bandit**: Excludes test files from security scans
+- **Unit Tests**: Runs `make test` command
+
 ## 🛠️ Available Commands
 
 ```bash
