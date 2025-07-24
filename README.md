@@ -404,11 +404,6 @@ make test-integration-real  # Run real data integration tests
 make test-all              # Run all tests
 ```
 
-### ⚠️ Important Notes
-
-- **Costs**: Running this infrastructure will incur AWS charges. Remember to destroy resources when done.
-- **Cleanup**: Use `make app-destroy` and `make infra-destroy` to clean up resources.
-
 ## 🔧 Pre-commit Hooks & Code Quality
 
 This project uses **pre-commit hooks** to ensure code quality and consistency. When you commit changes, the following automated checks are performed:
@@ -487,20 +482,10 @@ The hooks are configured in `.pre-commit-config.yaml`:
 make help
 ```
 
-## 🤝 Contributing
+### ⚠️ Important Notes
 
-1. **Fork** the repository
-2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
-3. **Commit** your changes (`git commit -m 'feat: add amazing feature'`)
-4. **Push** to the branch (`git push origin feature/amazing-feature`)
-5. **Open** a Pull Request
-
-### **Code Quality Standards**
-- All code must pass pre-commit hooks
-- Unit tests required for new functionality
-- Follow PEP 8 style guidelines
-- Use conventional commit messages
-- Integration tests for new features
+- **Costs**: Running this infrastructure will incur AWS charges. Remember to destroy resources when done.
+- **Cleanup**: Use `make app-destroy` and `make infra-destroy` to clean up resources.
 
 ---
 
