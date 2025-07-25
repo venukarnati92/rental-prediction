@@ -149,6 +149,8 @@ make infra-apply
 - **Adminer**: `http://<EC2-PUBLIC-IP>:8080` (database management)
 - **PostgreSQL**: `<EC2-PUBLIC-IP>:5432` (local database)
 
+> **Note**: Sometimes it takes up to 5 minutes for all the services to be up and running after infrastructure deployment. Please wait a few minutes before accessing the services.
+
 
 #### 4. **Access EC2 instance**
 ```bash
