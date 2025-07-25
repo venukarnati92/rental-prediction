@@ -174,6 +174,14 @@ Naviate to browser http://<<EC2-PUBLIC-IP>>:4200/deployments and execute the dep
 Prefect orchestartion will build the model, mlflow is used for model tracking and uploading the model to S3 and publish evidently metrics
 ```
 
+#### 4. **Accessing Grafana Dashboard**
+```
+Infrastructure deployment will create a grafana dashboard called Rental Prediction
+As part of prefect orchestartion one of the task is generate Evidently report
+Dashboard can be found here http://<<EC2-PUBLIC-IP>>:3000/dashboards
+```
+
+
 ### Deploy Application Service
 
 #### 1. **Deploy App Infrastructure**
